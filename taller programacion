@@ -1,0 +1,145 @@
+import json 
+
+
+# Nombre del archivo
+Databases = 'Databases_preguntas.json'
+
+# Clase para manejar preguntas
+class Pregunta:
+    def __init__(self, pregunta, opciones, correcta):
+        self.pregunta = pregunta
+        self.opciones = opciones
+        self.correcta = correcta
+
+    def __str__(self): 
+        return f"{self.pregunta}\n" + "\n".join([f"{chr(65+i)}. {opcion}" for i, opcion in enumerate(self.opciones)])
+
+class GestionarPreguntas:
+    def __init__(self, database): 
+        self.database = database
+        self.preguntas = self.cargar_preguntas_json()
+
+    # Funciones para gestionar registros
+    def agregar_registro(self): 
+        pregunta = input("Ingrese la nueva pregunta: ") 
+        opciones = [] 
+        for i in range(4): 
+            opciones.append(input(f"Ingrese la opción {chr(65 + i)}: ")) 
+        correcta = input("Ingrese la opción correcta (A/B/C/D): ").upper() 
+        self.preguntas.append(Pregunta(pregunta, opciones, correcta)) 
+        self.guardar_preguntas_json()
+
+    def eliminar_registro(self): 
+        for i, pregunta in enumerate(self.preguntas): 
+            print(f"{i + 1}. {pregunta.pregunta}") 
+        indice = int(input("Ingrese el número de la pregunta que desea eliminar: ")) - 1 
+        if 0 <= indice < len(self.preguntas):
+            self.preguntas.pop(indice)
+            self.guardar_preguntas_json()
+        else: 
+            print("Índice inválido")
+
+    # Funciones para manejar archivos JSON
+    def guardar_preguntas_json(self): 
+        with open(self.database, 'w') as file: 
+            json.dump([pregunta.__dict__ for pregunta in self.preguntas], file) 
+
+    def cargar_preguntas_json(self): 
+        try: 
+            with open(self.database, 'r') as file: 
+                preguntas_list = json.load(file)
+                # Convertir cada entrada de la lista en un objeto Pregunta
+                return [Pregunta(p[0], p[1:5], p[5]) for p in preguntas_list]
+        except FileNotFoundError: 
+            return []
+
+# Función del menú
+def menu():
+    print("\nIngrese la acción que desea hacer:")
+    print("1. Agregar registro")
+    print("2. Eliminar registro")
+    print("3. Jugar")
+    print("4. Salir")
+    eleccion = input("Ingrese una opción [1/2/3/4]: ")
+    return eleccion
+
+# Función principal
+def main(): 
+    database = 'Databases_preguntas.json' 
+    gestion = GestionarPreguntas(database) 
+    
+    while True: 
+        eleccion = menu() 
+        if eleccion == "1": 
+            gestion.agregar_registro() 
+        elif eleccion == "2": 
+            gestion.eliminar_registro() 
+        elif eleccion == "3":
+            # Puntuación inicial de los jugadores
+            points_P1 = 6
+            points_P2 = 6
+            print("===== P1 USTED TIENE ", points_P1, " PUNTOS =====")
+            print("===== P2 USTED TIENE ", points_P2, " PUNTOS =====")
+
+            # Vectores para almacenar las respuestas de cada jugador
+            respuestas_P1 = []
+            respuestas_P2 = []
+
+            # Bucle para recorrer las preguntas
+            for index, pregunta in enumerate(gestion.preguntas):
+                print(pregunta.pregunta)
+                opciones = ["A", "B", "C", "D"]
+                for index, opción in enumerate(pregunta.opciones):
+                    print(f"{opciones[index]}: {opción}")
+                respuesta_P1 = input("P1 ingrese su respuesta: ").upper()
+                respuesta_P2 = input("P2 ingrese su respuesta: ").upper()
+                respuestas_P1.append(respuesta_P1)
+                respuestas_P2.append(respuesta_P2)
+                print("===LA RESPUESTA CORRECTA ES: ", pregunta.correcta, "===")
+                if respuesta_P1 == pregunta.correcta:
+                    points_P1 += 2
+                    print("====FELICIDADES JUGADOR 1 LA RESPUESTA ES CORRECTA====")
+                else:
+                    points_P1 -= 2
+                    print("====LO SIENTO JUGADOR 1 LA RESPUESTA ES INCORRECTA====")
+                if respuesta_P2 == pregunta.correcta:
+                    points_P2 += 2
+                    print("====FELICIDADES JUGADOR 2 LA RESPUESTA ES CORRECTA====")
+                else:
+                    points_P2 -= 2
+                    print("====LO SIENTO JUGADOR 2 LA RESPUESTA ES INCORRECTA====")
+                print("===PUNTUACIONES ACTUALES===")
+                print(f"P1: {points_P1}\nP2: {points_P2}")
+
+            # Ordenar puntajes
+            scores = [("Jugador 1", points_P1), ("Jugador 2", points_P2)]
+            scores.sort(key=lambda x: x[1], reverse=True)
+            print(">>>>>>EL JUEGO ACABO<<<<<<<")
+            print("Puntajes ordenados:", scores)
+            if scores[0][1] == scores[1][1]:
+                print("Es un empate.")
+            else:
+                print("Ganador:", scores[0][0])
+
+            # Revisar respuestas anteriores
+            ver_respuestas = input("¿Quieres ver tus respuestas correctas e incorrectas? (S/N): ").upper()
+            if ver_respuestas == "S":
+                print("\n=== RESPUESTAS DE JUGADOR 1 ===")
+                for idx, pregunta in enumerate(gestion.preguntas):
+                    estado = "Correcta" if respuestas_P1[idx] == pregunta.correcta else "Incorrecta"
+                    print(f"Pregunta {idx + 1}: {estado} - Respuesta dada: {respuestas_P1[idx]}, Respuesta correcta: {pregunta.correcta}")
+
+                print("\n=== RESPUESTAS DE JUGADOR 2 ===")
+                for idx, pregunta in enumerate(gestion.preguntas):
+                    estado = "Correcta" if respuestas_P2[idx] == pregunta.correcta else "Incorrecta"
+                    print(f"Pregunta {idx + 1}: {estado} - Respuesta dada: {respuestas_P2[idx]}, Respuesta correcta: {pregunta.correcta}")
+            else:
+                print("¡Gracias por jugar!")
+        elif eleccion == "4":
+            print("Saliendo del programa...")
+            break
+        else:
+            print("Opción no válida. Escoja alguna opción mostrada anteriormente.")
+
+if __name__ == "__main__": 
+    main()
